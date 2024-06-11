@@ -1,2 +1,2 @@
 # PHPFirstProject
-This is my PHP project
+This is my first PHP project
