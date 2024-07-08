@@ -2,7 +2,7 @@
     //PDO
     define('DATABASE_SERVER', 'localhost');
     define('DATABASE_USER', 'root');
-    define('DATABASE_PASSWORD', '');
+    define('DATABASE_PASSWORD', 'root');
     define('DATABASE_NAME', 'phpcourse');
     $connection = null;
 

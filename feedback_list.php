@@ -1,22 +1,50 @@
 <?php
     require './components/header.php';
     echo "<h1>List of feedbacks here</h1>";
+    $limit = isset($_GET['limit']) ? $_GET['limit'] : 3;
+    $search = isset($_GET['search']) ? $_GET['search'] : "";
     $currPage = $_GET['page'] ?? 1;
-    if($currPage == 1){
-        $sql = "SELECT id, name, email, body, date FROM FEEDBACK LIMIT 3 OFFSET 0";
-    }else{
-        $currPage += 2;
-        $sql = "SELECT id, name, email, body, date FROM FEEDBACK LIMIT 3 OFFSET $currPage";
+
+    $sql = "SELECT id, name, email, body, date FROM FEEDBACK ";
+    $sqlAll = "SELECT count(*) FROM FEEDBACK";
+
+    if($search != ""){
+        $sql .= " WHERE name LIKE '%$search%'";
+        $sqlAll .= " WHERE name LIKE '%$search%'";
     }
+    if($currPage == 1){
+         $sql .= " LIMIT $limit OFFSET 0";
+    }else{
+        $offset = ($currPage - 1) * $limit;
+        $sql .= " LIMIT $limit OFFSET $offset";
+    }
+    
     if($connection != null){
         try{
-            $statement = $connection->prepare($sql);
+            $statement = $connection->prepare($sqlAll);
             $statement->execute(); //execute cau lenh sql tren
-            $result = $statement->setFetchMode(PDO::FETCH_ASSOC); //doc du lieu ra. :: la goi den thuoc tinh static
-            $feedbacks = $statement->fetchAll(); //tra ra danh sach ban ghi
-            $feedbacksNum = count($feedbacks);
-            $feedbacksNumPage = ceil($feedbacksNum / 3);
-            foreach($feedbacks as $feedback){
+            $feedbacksNum = $statement->fetchColumn(); //// Lấy giá trị số lượng bản ghi
+            $feedbacksNumPage = ceil((int)$feedbacksNum / $limit);
+
+            $statement2 = $connection->prepare($sql);
+            $statement2->execute(); //execute cau lenh sql tren
+            $result2 = $statement2->setFetchMode(PDO::FETCH_ASSOC); //doc du lieu ra. :: la goi den thuoc tinh static
+            $feedbacks2 = $statement2->fetchAll(); //tra ra danh sach ban ghi
+            $feedbacksNum2 = count($feedbacks2);
+
+
+            echo "
+            <form action='{$_SERVER['PHP_SELF']}' method='get'>
+            <div class='input-group rounded mb-3'>
+                    <input  value='". ($search != "" ? $search : '') .  "'name='search' type='search' class='form-control rounded' placeholder='Search' aria-label='Search' aria-describedby='search-addon' />
+                    <input hidden type='text' name='limit' value=$limit>
+                    <span class='input-group-text border-0' id='search-addon'>
+                        <button type='submit'><i class='fas fa-search'></i></button> 
+                    </span>
+                </div>
+            </form>
+            ";
+            foreach($feedbacks2 as $feedback){
                 $id = $feedback['id'] ?? 0;
                 $name = $feedback['name'] ?? ''; //?? la neu khong co thi gan gia tri rong
                 $email = $feedback['email'] ?? '';
@@ -26,23 +54,30 @@
             }
                 echo "
                 <nav aria-label='Page navigation example'>
-                <ul class='pagination'>
-                <li class='page-item'><a class='page-link' href='#'>Previous</a></li> ";
-                for($i = 1; $i<=$feedbacksNumPage; $i++){
-                    echo "<li class='page-item'><a class='page-link' href='{$_SERVER['PHP_SELF']}?page=$i'>$i</a></li>";
-                }
+                <ul class='pagination'> ";
+            if($currPage > 1){
+                echo "<li class='page-item'><a class='page-link' href='" . $_SERVER['PHP_SELF'] . "?page=" . ($currPage - 1) .  "&limit=$limit&search=$search'>Previous</a></li>";
+            }
+            for($i = 1; $i<=$feedbacksNumPage; $i++){
+                echo "<li class='page-item'><a class='page-link' href='{$_SERVER['PHP_SELF']}?page=$i&limit=$limit&search=$search'>$i</a></li>";
+
+
+            }
+            if($currPage < $feedbacksNumPage){
+                echo "<li class='page-item'><a class='page-link' href='" . $_SERVER['PHP_SELF'] . "?page=" . ($currPage + 1) . "&limit=$limit&search=$search'>Next</a></li>";
+            }
                 echo "
-                <li class='page-item'><a class='page-link' href='#'>Next</a></li>
             </ul>
             </nav>
 
-            <form action='your_page.php' method='get'>
+            <form action='{$_SERVER['PHP_SELF']}' method='get'>
             <label for='so_item'>Chọn số lượng item hiển thị:</label>
-            <select name='so_item' id='so_item'>
-                <option value='5'>5</option>
-                <option value='10'>10</option>
-                <option value='20'>20</option>
-                <option value='50'>50</option>
+            <input hidden type='text' name='search' value=$search>
+            <select name='limit' id='so_item'>
+                 <option value='3'" . ($limit == 3 ? ' selected' : '') . ">3</option>
+                 <option value='5'" . ($limit == 5 ? ' selected' : '') . ">5</option>
+                 <option value='7'" . ($limit == 7 ? ' selected' : '') . ">7</option>
+                 <option value='9'" . ($limit == 9 ? ' selected' : '') . ">9</option>
             </select>
             <input type='submit' value='Xác nhận'>
             </form>
